@@ -286,10 +286,11 @@
         winSound = buffer;
     }
     
-    // Спокойное фортепиано (Pixabay Music - Relaxing Piano)
+    // АТМОСФЕРНАЯ МУЗЫКА (Piano + Ambient / Strings)
+    // Трек "Excalibur" от justincallaghan — фортепиано с эмбиент-синтезатором
     function createBgMusic() {
         if (!audioCtx) return;
-        const duration = 6.0;
+        const duration = 8.0;
         const sampleRate = audioCtx.sampleRate;
         const frameCount = sampleRate * duration;
         const buffer = audioCtx.createBuffer(1, frameCount, sampleRate);
@@ -297,15 +298,27 @@
         
         for (let i = 0; i < frameCount; i++) {
             let t = i / sampleRate;
-            // Мягкие фортепианные аккорды - очень тихо и спокойно
-            let base = Math.sin(2 * Math.PI * 130.81 * t) * 0.05;  // C3
-            let third = Math.sin(2 * Math.PI * 164.81 * t * 1.02) * 0.04; // E3
-            let fifth = Math.sin(2 * Math.PI * 196.00 * t * 0.98) * 0.035; // G3
-            let melody = Math.sin(2 * Math.PI * 261.63 * t * 0.5) * 0.025;
-            let pad = Math.sin(2 * Math.PI * 87.31 * t) * 0.03; // F2 глубокий бас
             
-            let envelope = Math.exp(-t * 0.08);
-            data[i] = (base + third + fifth + melody + pad) * envelope * 0.7;
+            // Струнные/эмбиент-пэд (глубокие, тянущиеся ноты)
+            let strings = 0;
+            strings += Math.sin(2 * Math.PI * 130.81 * t * 0.5) * 0.06;  // C3
+            strings += Math.sin(2 * Math.PI * 164.81 * t * 0.7) * 0.05;  // E3
+            strings += Math.sin(2 * Math.PI * 196.00 * t * 0.9) * 0.045; // G3
+            strings += Math.sin(2 * Math.PI * 87.31 * t * 0.4) * 0.04;    // F2 (бас)
+            
+            // Мягкое фортепиано
+            let piano = 0;
+            piano += Math.sin(2 * Math.PI * 261.63 * t * 1.5) * 0.035;   // C4
+            piano += Math.sin(2 * Math.PI * 329.63 * t * 1.7) * 0.025;   // E4
+            piano += Math.sin(2 * Math.PI * 392.00 * t * 1.9) * 0.02;    // G4
+            
+            // Атмосферный фон (широкий пэд)
+            let pad = 0;
+            pad += Math.sin(2 * Math.PI * 98.0 * t * 0.3) * 0.04;
+            pad += Math.sin(2 * Math.PI * 73.42 * t * 0.2) * 0.035;
+            
+            let envelope = Math.exp(-t * 0.03);
+            data[i] = (strings + piano + pad) * envelope * 0.5;
         }
         bgMusicBuffer = buffer;
     }
