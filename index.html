@@ -132,6 +132,7 @@
             display: flex;
             gap: 10px;
             justify-content: center;
+            flex-wrap: wrap;
         }
 
         button {
@@ -146,6 +147,10 @@
             cursor: pointer;
         }
 
+        .music-btn {
+            background: #2c3e50;
+        }
+
         .status {
             text-align: center;
             margin-top: 12px;
@@ -157,17 +162,13 @@
             border-radius: 40px;
         }
 
-        /* Адаптация под экран — карточки сами уменьшаются */
         @media (max-width: 600px) {
             .card { font-size: 18px; max-width: 55px; }
             .stat-value { font-size: 18px; }
-            .stat-card { padding: 6px 8px; }
         }
 
         @media (max-width: 480px) {
             .card { font-size: 16px; max-width: 45px; }
-            .game-container { padding: 10px; }
-            .game-panel { padding: 12px; }
         }
 
         @media (max-width: 400px) {
@@ -196,6 +197,7 @@
 
         <div class="controls">
             <button id="newGameBtn">🔄 НОВАЯ ИГРА</button>
+            <button id="musicBtn" class="music-btn">🔇 МУЗЫКА</button>
         </div>
         <div class="status" id="gameStatus">🧠 НАЙДИ ПАРЫ</div>
     </div>
@@ -219,7 +221,141 @@
     const bestMovesSpan = document.getElementById('bestMoves');
     const bestTimeSpan = document.getElementById('bestTime');
     const gameStatusSpan = document.getElementById('gameStatus');
+    const musicBtn = document.getElementById('musicBtn');
     
+    // ========== ЗВУКИ ==========
+    let audioCtx = null;
+    let flipSound = null, matchSound = null, errorSound = null, winSound = null;
+    let bgMusicBuffer = null;
+    let bgLoopSource = null;
+    let musicEnabled = false;
+    
+    function initAudio() {
+        if (audioCtx) return;
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            createFlipSound();
+            createMatchSound();
+            createErrorSound();
+            createWinSound();
+            createBgMusic();
+        } catch(e) { console.log("Web Audio не поддерживается"); }
+    }
+    
+    function createFlipSound() {
+        if (!audioCtx) return;
+        const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.08, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < buffer.length; i++) {
+            data[i] = Math.sin(440 * 2 * Math.PI * i / audioCtx.sampleRate) * Math.exp(-i / (audioCtx.sampleRate * 0.03));
+        }
+        flipSound = buffer;
+    }
+    
+    function createMatchSound() {
+        if (!audioCtx) return;
+        const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < buffer.length; i++) {
+            let t = i / audioCtx.sampleRate;
+            data[i] = Math.sin(660 * 2 * Math.PI * t) * Math.exp(-t * 10);
+        }
+        matchSound = buffer;
+    }
+    
+    function createErrorSound() {
+        if (!audioCtx) return;
+        const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.25, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < buffer.length; i++) {
+            let t = i / audioCtx.sampleRate;
+            data[i] = (Math.random() - 0.5) * 0.5 * Math.exp(-t * 15);
+        }
+        errorSound = buffer;
+    }
+    
+    function createWinSound() {
+        if (!audioCtx) return;
+        const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.8, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < buffer.length; i++) {
+            let t = i / audioCtx.sampleRate;
+            let freq = 440 + t * 440;
+            data[i] = Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 3);
+        }
+        winSound = buffer;
+    }
+    
+    function createBgMusic() {
+        if (!audioCtx) return;
+        const duration = 5.0;
+        const sampleRate = audioCtx.sampleRate;
+        const frameCount = sampleRate * duration;
+        const buffer = audioCtx.createBuffer(1, frameCount, sampleRate);
+        const data = buffer.getChannelData(0);
+        
+        for (let i = 0; i < frameCount; i++) {
+            let t = i / sampleRate;
+            // Очень тихая, спокойная музыка (громкость ~8%)
+            let chord1 = Math.sin(2 * Math.PI * 130.81 * t) * 0.04;  // C3
+            let chord2 = Math.sin(2 * Math.PI * 164.81 * t * 1.2) * 0.03; // E3
+            let chord3 = Math.sin(2 * Math.PI * 196.00 * t * 1.5) * 0.025; // G3
+            let melody = Math.sin(2 * Math.PI * 261.63 * t * 0.5) * 0.02 * Math.sin(t * Math.PI);
+            
+            data[i] = (chord1 + chord2 + chord3 + melody) * Math.exp(-t * 0.03);
+        }
+        bgMusicBuffer = buffer;
+    }
+    
+    function playSound(buffer) {
+        if (!audioCtx || !buffer) return;
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioCtx.destination);
+        source.start();
+    }
+    
+    function startBgMusic() {
+        if (!audioCtx || !bgMusicBuffer || !musicEnabled) return;
+        if (bgLoopSource) {
+            try { bgLoopSource.stop(); } catch(e) {}
+        }
+        bgLoopSource = audioCtx.createBufferSource();
+        bgLoopSource.buffer = bgMusicBuffer;
+        bgLoopSource.loop = true;
+        bgLoopSource.connect(audioCtx.destination);
+        bgLoopSource.start();
+    }
+    
+    function stopBgMusic() {
+        if (bgLoopSource) {
+            try { bgLoopSource.stop(); } catch(e) {}
+            bgLoopSource = null;
+        }
+    }
+    
+    function toggleMusic() {
+        musicEnabled = !musicEnabled;
+        if (musicEnabled) {
+            startBgMusic();
+            musicBtn.innerHTML = "🎵 МУЗЫКА";
+            musicBtn.style.background = "#e67e22";
+        } else {
+            stopBgMusic();
+            musicBtn.innerHTML = "🔇 МУЗЫКА";
+            musicBtn.style.background = "#2c3e50";
+        }
+    }
+    
+    function unlockAudio() {
+        if (audioCtx && audioCtx.state !== 'running') {
+            audioCtx.resume().then(() => {
+                if (musicEnabled) startBgMusic();
+            });
+        }
+    }
+    
+    // ========== ИГРА ==========
     function loadRecords() {
         try {
             const savedMoves = localStorage.getItem('memory_best_moves');
@@ -270,10 +406,10 @@
     }
     
     function renderBoard(){
-        let cols, rows;
-        if (currentPairs === 10) { cols = 5; rows = 4; }
-        else if (currentPairs === 15) { cols = 6; rows = 5; }
-        else { cols = 10; rows = 5; }
+        let cols;
+        if (currentPairs === 10) cols = 5;
+        else if (currentPairs === 15) cols = 6;
+        else cols = 10;
         
         boardEl.style.display = 'grid';
         boardEl.style.gridTemplateColumns = `repeat(${cols}, minmax(35px, 70px))`;
@@ -298,6 +434,8 @@
     function onCardClick(idx){
         if(!gameActive || lockBoard || cards[idx].matched || cards[idx].flipped) return;
         
+        playSound(flipSound);
+        
         cards[idx].flipped = true;
         flippedCards.push(idx);
         renderBoard();
@@ -312,6 +450,7 @@
             const match = (cards[idx1].id === cards[idx2].id);
             
             if(match){
+                playSound(matchSound);
                 cards[idx1].matched = true;
                 cards[idx2].matched = true;
                 cards[idx1].flipped = false;
@@ -324,6 +463,7 @@
                 if(matchedPairs === currentPairs){
                     gameActive = false;
                     if(timerInterval) clearInterval(timerInterval);
+                    playSound(winSound);
                     gameStatusSpan.innerHTML = "🏆 ПОБЕДА! 🏆";
                     gameStatusSpan.style.color = "#f1c40f";
                     
@@ -337,6 +477,7 @@
                     updateRecordsDisplay();
                 }
             } else {
+                playSound(errorSound);
                 setTimeout(() => {
                     cards[idx1].flipped = false;
                     cards[idx2].flipped = false;
@@ -368,12 +509,19 @@
             btn.addEventListener('click', () => setDifficulty(parseInt(btn.dataset.pairs)));
         });
         document.getElementById('newGameBtn').addEventListener('click', () => newGame());
+        musicBtn.addEventListener('click', toggleMusic);
+        document.body.addEventListener('click', unlockAudio);
+        document.body.addEventListener('touchstart', unlockAudio);
     }
     
     function start() {
         loadRecords();
+        initAudio();
         setupEvents();
         initGame();
+        musicEnabled = false;
+        musicBtn.innerHTML = "🔇 МУЗЫКА";
+        musicBtn.style.background = "#2c3e50";
     }
     
     start();
