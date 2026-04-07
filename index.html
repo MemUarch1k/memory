@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Memuar's Memory</title>
     <style>
         * {
@@ -19,16 +19,14 @@
             font-family: 'Segoe UI', 'Courier New', monospace;
             margin: 0;
             padding: 16px;
-            overflow-x: auto;
         }
 
         .game-container {
             background: #0f1117;
             border-radius: 48px;
             padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             max-width: 100%;
-            overflow-x: auto;
         }
 
         .game-panel {
@@ -51,13 +49,11 @@
             padding: 10px 20px;
             text-align: center;
             flex: 1;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .stat-label {
             color: #5a6e8a;
             font-size: 12px;
-            letter-spacing: 2px;
             font-weight: bold;
             text-transform: uppercase;
         }
@@ -66,13 +62,11 @@
             color: #2ecc71;
             font-size: 28px;
             font-weight: bold;
-            text-shadow: 0 0 5px #2ecc7140;
             line-height: 1;
         }
 
         .best .stat-value {
             color: #f39c12;
-            text-shadow: 0 0 5px #f39c1240;
             font-size: 22px;
         }
 
@@ -94,20 +88,20 @@
             padding: 8px 20px;
             border-radius: 60px;
             cursor: pointer;
-            transition: 0.1s linear;
-            box-shadow: 0 2px 0 #0b0e12;
         }
 
         .diff-btn.active {
             background: #2ecc71;
             color: #0a0c12;
-            box-shadow: 0 0 10px #2ecc71;
         }
 
         .board-wrapper {
             overflow-x: auto;
+            overflow-y: visible;
             margin-bottom: 20px;
             border-radius: 24px;
+            padding-bottom: 10px;
+            -webkit-overflow-scrolling: touch;
         }
 
         .board {
@@ -125,11 +119,9 @@
             justify-content: center;
             font-size: 28px;
             cursor: pointer;
-            transition: 0.1s linear;
             aspect-ratio: 1 / 1;
-            width: 65px;
+            width: 70px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            color: #c0d0e6;
         }
 
         .card.flipped, .card.matched {
@@ -160,20 +152,6 @@
             padding: 12px 28px;
             border-radius: 60px;
             cursor: pointer;
-            transition: 0.1s linear;
-            box-shadow: 0 4px 0 #0b0e12;
-            letter-spacing: 1px;
-        }
-
-        button:active {
-            transform: translateY(2px);
-            box-shadow: 0 1px 0 #0b0e12;
-        }
-
-        .music-btn {
-            background: #2c3e50;
-            padding: 12px 20px;
-            font-size: 20px;
         }
 
         .status {
@@ -187,14 +165,17 @@
             border-radius: 60px;
         }
 
+        /* Телефоны */
         @media (max-width: 700px) {
-            .card { width: 50px; font-size: 22px; }
+            .card { width: 55px; font-size: 24px; }
             .stat-value { font-size: 20px; }
-            .diff-btn { font-size: 11px; padding: 6px 12px; }
-            button { padding: 8px 20px; font-size: 14px; }
         }
 
         @media (max-width: 550px) {
+            .card { width: 45px; font-size: 20px; }
+        }
+
+        @media (max-width: 480px) {
             .card { width: 42px; font-size: 18px; }
         }
     </style>
@@ -221,7 +202,6 @@
 
         <div class="controls">
             <button id="newGameBtn">🔄 НОВАЯ ИГРА</button>
-            <button id="musicBtn" class="music-btn">🔇 МУЗЫКА</button>
         </div>
         <div class="status" id="gameStatus">🧠 НАЙДИ ПАРЫ</div>
     </div>
@@ -245,84 +225,7 @@
     const bestMovesSpan = document.getElementById('bestMoves');
     const bestTimeSpan = document.getElementById('bestTime');
     const gameStatusSpan = document.getElementById('gameStatus');
-    const musicBtn = document.getElementById('musicBtn');
     
-    // Звуки
-    let audioCtx = null;
-    let flipSound = null, matchSound = null, errorSound = null, winSound = null;
-    let musicEnabled = false;
-    let bgLoopSource = null;
-    
-    function initAudio() {
-        if (audioCtx) return;
-        try {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            createFlipSound();
-            createMatchSound();
-            createErrorSound();
-            createWinSound();
-        } catch(e) { console.log("Web Audio не поддерживается"); }
-    }
-    
-    function createFlipSound() {
-        if (!audioCtx) return;
-        const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.08, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < buffer.length; i++) {
-            data[i] = Math.sin(440 * 2 * Math.PI * i / audioCtx.sampleRate) * Math.exp(-i / (audioCtx.sampleRate * 0.03));
-        }
-        flipSound = buffer;
-    }
-    
-    function createMatchSound() {
-        if (!audioCtx) return;
-        const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < buffer.length; i++) {
-            let t = i / audioCtx.sampleRate;
-            data[i] = Math.sin(660 * 2 * Math.PI * t) * Math.exp(-t * 10);
-        }
-        matchSound = buffer;
-    }
-    
-    function createErrorSound() {
-        if (!audioCtx) return;
-        const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.25, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < buffer.length; i++) {
-            let t = i / audioCtx.sampleRate;
-            data[i] = (Math.random() - 0.5) * 0.5 * Math.exp(-t * 15);
-        }
-        errorSound = buffer;
-    }
-    
-    function createWinSound() {
-        if (!audioCtx) return;
-        const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.8, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < buffer.length; i++) {
-            let t = i / audioCtx.sampleRate;
-            let freq = 440 + t * 440;
-            data[i] = Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 3);
-        }
-        winSound = buffer;
-    }
-    
-    function playSound(buffer) {
-        if (!audioCtx || !buffer) return;
-        const source = audioCtx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioCtx.destination);
-        source.start();
-    }
-    
-    function unlockAudio() {
-        if (audioCtx && audioCtx.state !== 'running') {
-            audioCtx.resume();
-        }
-    }
-    
-    // Рекорды
     function loadRecords() {
         try {
             const savedMoves = localStorage.getItem('memory_best_moves');
@@ -375,7 +278,7 @@
     function renderBoard(){
         let cols = currentPairs===10 ? 5 : (currentPairs===15 ? 6 : 10);
         boardEl.style.display='grid';
-        boardEl.style.gridTemplateColumns=`repeat(${cols}, minmax(42px, 65px))`;
+        boardEl.style.gridTemplateColumns=`repeat(${cols}, minmax(42px, 70px))`;
         boardEl.style.gap='8px';
         boardEl.innerHTML='';
         
@@ -390,26 +293,22 @@
     
     function onCardClick(idx){
         if(!gameActive||lockBoard||cards[idx].matched||cards[idx].flipped) return;
-        playSound(flipSound);
         cards[idx].flipped=true; flippedCards.push(idx); renderBoard();
         
         if(flippedCards.length===2){
             lockBoard=true; moves++; movesSpan.innerText=moves;
             const idx1=flippedCards[0], idx2=flippedCards[1], match=(cards[idx1].id===cards[idx2].id);
             if(match){
-                playSound(matchSound);
                 cards[idx1].matched=true; cards[idx2].matched=true; cards[idx1].flipped=false; cards[idx2].flipped=false;
                 matchedPairs++; flippedCards=[]; lockBoard=false; renderBoard();
                 if(matchedPairs===currentPairs){
                     gameActive=false; if(timerInterval) clearInterval(timerInterval);
-                    playSound(winSound);
                     gameStatusSpan.innerHTML="🏆 ПОБЕДА! 🏆"; gameStatusSpan.style.color="#f1c40f";
                     if(bestMoves[currentPairs]===null || moves<bestMoves[currentPairs]) bestMoves[currentPairs]=moves;
                     if(bestTimes[currentPairs]===null || timerSeconds<bestTimes[currentPairs]) bestTimes[currentPairs]=timerSeconds;
                     saveRecords(); updateRecordsDisplay();
                 }
             } else {
-                playSound(errorSound);
                 setTimeout(()=>{
                     cards[idx1].flipped=false; cards[idx2].flipped=false; flippedCards=[]; lockBoard=false; renderBoard();
                 },700);
@@ -429,72 +328,15 @@
     
     function newGame(){ if(timerInterval) clearInterval(timerInterval); initGame(); }
     
-    // Музыка (тихая, спокойная)
-    function createBgMusic() {
-        if (!audioCtx) return;
-        const duration = 4.0;
-        const sampleRate = audioCtx.sampleRate;
-        const frameCount = sampleRate * duration;
-        const buffer = audioCtx.createBuffer(1, frameCount, sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < frameCount; i++) {
-            let t = i / sampleRate;
-            let note1 = Math.sin(2 * Math.PI * 261.63 * t) * 0.08;
-            let note2 = Math.sin(2 * Math.PI * 329.63 * t * 1.5) * 0.05;
-            let note3 = Math.sin(2 * Math.PI * 392.00 * t * 2) * 0.04;
-            let pad = Math.sin(2 * Math.PI * 130.81 * t) * 0.06;
-            data[i] = (note1 + note2 + note3 + pad) * Math.exp(-t * 0.05);
-        }
-        return buffer;
-    }
-    
-    let bgMusicBuffer = null;
-    function startBgMusic() {
-        if (!audioCtx || !musicEnabled) return;
-        if (bgLoopSource) try { bgLoopSource.stop(); } catch(e) {}
-        if (!bgMusicBuffer) bgMusicBuffer = createBgMusic();
-        if (!bgMusicBuffer) return;
-        bgLoopSource = audioCtx.createBufferSource();
-        bgLoopSource.buffer = bgMusicBuffer;
-        bgLoopSource.loop = true;
-        bgLoopSource.connect(audioCtx.destination);
-        bgLoopSource.start();
-    }
-    
-    function stopBgMusic() {
-        if (bgLoopSource) { try { bgLoopSource.stop(); } catch(e) {} bgLoopSource = null; }
-    }
-    
-    function toggleMusic() {
-        musicEnabled = !musicEnabled;
-        if (musicEnabled) {
-            startBgMusic();
-            musicBtn.innerHTML = "🎵 МУЗЫКА";
-            musicBtn.style.background = "#e67e22";
-        } else {
-            stopBgMusic();
-            musicBtn.innerHTML = "🔇 МУЗЫКА";
-            musicBtn.style.background = "#2c3e50";
-        }
-    }
-    
-    // События
     function setupEvents() {
         document.querySelectorAll('.diff-btn').forEach(btn=>btn.addEventListener('click',()=>setDifficulty(parseInt(btn.dataset.pairs))));
         document.getElementById('newGameBtn').addEventListener('click',()=>newGame());
-        musicBtn.addEventListener('click',toggleMusic);
-        document.body.addEventListener('click',()=>{ unlockAudio(); if(musicEnabled && !bgLoopSource) startBgMusic(); });
-        document.body.addEventListener('touchstart',()=>{ unlockAudio(); if(musicEnabled && !bgLoopSource) startBgMusic(); });
     }
     
     function start() {
         loadRecords();
-        initAudio();
         setupEvents();
         initGame();
-        musicEnabled = false;
-        musicBtn.innerHTML = "🔇 МУЗЫКА";
-        musicBtn.style.background = "#2c3e50";
     }
     
     start();
