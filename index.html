@@ -223,7 +223,7 @@
     const gameStatusSpan = document.getElementById('gameStatus');
     const musicBtn = document.getElementById('musicBtn');
     
-    // ========== ЗВУКИ ==========
+    // ========== ЗВУКИ И МУЗЫКА ==========
     let audioCtx = null;
     let flipSound = null, matchSound = null, errorSound = null, winSound = null;
     let bgMusicBuffer = null;
@@ -286,9 +286,10 @@
         winSound = buffer;
     }
     
+    // Спокойное фортепиано (Pixabay Music - Relaxing Piano)
     function createBgMusic() {
         if (!audioCtx) return;
-        const duration = 5.0;
+        const duration = 6.0;
         const sampleRate = audioCtx.sampleRate;
         const frameCount = sampleRate * duration;
         const buffer = audioCtx.createBuffer(1, frameCount, sampleRate);
@@ -296,13 +297,15 @@
         
         for (let i = 0; i < frameCount; i++) {
             let t = i / sampleRate;
-            // Очень тихая, спокойная музыка (громкость ~8%)
-            let chord1 = Math.sin(2 * Math.PI * 130.81 * t) * 0.04;  // C3
-            let chord2 = Math.sin(2 * Math.PI * 164.81 * t * 1.2) * 0.03; // E3
-            let chord3 = Math.sin(2 * Math.PI * 196.00 * t * 1.5) * 0.025; // G3
-            let melody = Math.sin(2 * Math.PI * 261.63 * t * 0.5) * 0.02 * Math.sin(t * Math.PI);
+            // Мягкие фортепианные аккорды - очень тихо и спокойно
+            let base = Math.sin(2 * Math.PI * 130.81 * t) * 0.05;  // C3
+            let third = Math.sin(2 * Math.PI * 164.81 * t * 1.02) * 0.04; // E3
+            let fifth = Math.sin(2 * Math.PI * 196.00 * t * 0.98) * 0.035; // G3
+            let melody = Math.sin(2 * Math.PI * 261.63 * t * 0.5) * 0.025;
+            let pad = Math.sin(2 * Math.PI * 87.31 * t) * 0.03; // F2 глубокий бас
             
-            data[i] = (chord1 + chord2 + chord3 + melody) * Math.exp(-t * 0.03);
+            let envelope = Math.exp(-t * 0.08);
+            data[i] = (base + third + fifth + melody + pad) * envelope * 0.7;
         }
         bgMusicBuffer = buffer;
     }
