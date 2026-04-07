@@ -2,49 +2,77 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Memuar's Memory</title>
     <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
             background: #0a0c12;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            font-family: monospace;
+            font-family: 'Segoe UI', 'Courier New', monospace;
             margin: 0;
             padding: 16px;
         }
+
         .game-container {
             background: #0f1117;
             border-radius: 48px;
             padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
+
         .game-panel {
             background: #07090e;
             border-radius: 32px;
             padding: 20px;
         }
+
         .stats {
             display: flex;
+            justify-content: space-between;
             gap: 15px;
             margin-bottom: 20px;
             flex-wrap: wrap;
         }
+
         .stat-card {
             background: #0f1117;
             border-radius: 24px;
             padding: 10px 20px;
             text-align: center;
+            flex: 1;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
         }
+
         .stat-label {
             color: #5a6e8a;
             font-size: 12px;
+            letter-spacing: 2px;
+            font-weight: bold;
+            text-transform: uppercase;
         }
+
         .stat-value {
             color: #2ecc71;
             font-size: 28px;
             font-weight: bold;
+            text-shadow: 0 0 5px #2ecc7140;
+            line-height: 1;
         }
+
+        .best .stat-value {
+            color: #f39c12;
+            text-shadow: 0 0 5px #f39c1240;
+            font-size: 22px;
+        }
+
         .difficulty-selector {
             display: flex;
             gap: 10px;
@@ -52,61 +80,110 @@
             margin-bottom: 20px;
             flex-wrap: wrap;
         }
+
         .diff-btn {
             background: #1a1f2a;
             border: none;
             color: #c0d0e6;
             font-family: inherit;
             font-size: 14px;
+            font-weight: bold;
             padding: 8px 20px;
             border-radius: 60px;
             cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 2px 0 #0b0e12;
         }
+
         .diff-btn.active {
             background: #2ecc71;
             color: #0a0c12;
+            box-shadow: 0 0 10px #2ecc71;
         }
+
         .board {
             display: grid;
             justify-content: center;
             gap: 8px;
             margin-bottom: 20px;
         }
+
         .card {
-            background: #1a1f2a;
+            background: linear-gradient(145deg, #1a1f2a, #0f1117);
             border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 32px;
             cursor: pointer;
+            transition: 0.1s linear;
             aspect-ratio: 1 / 1;
-            min-width: 60px;
+            min-width: 65px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            color: #c0d0e6;
         }
+
         .card.flipped, .card.matched {
-            background: #2a2f3e;
+            background: linear-gradient(145deg, #2a2f3e, #1a1f2a);
+            box-shadow: 0 0 12px rgba(46, 204, 113, 0.3);
         }
+
         .card.matched {
             opacity: 0.6;
+            filter: grayscale(0.3);
+            cursor: default;
         }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
         button {
             background: #1a1f2a;
             border: none;
             color: #c0d0e6;
             font-family: inherit;
             font-size: 18px;
+            font-weight: bold;
             padding: 12px 28px;
             border-radius: 60px;
             cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 4px 0 #0b0e12;
+            letter-spacing: 1px;
         }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #0b0e12;
+        }
+
+        .music-btn {
+            background: #2c3e50;
+            padding: 12px 20px;
+            font-size: 20px;
+        }
+
         .status {
             text-align: center;
             margin-top: 16px;
             color: #e67e22;
+            font-weight: bold;
+            font-size: 16px;
+            background: #0f1117;
+            padding: 8px;
+            border-radius: 60px;
         }
+
         @media (max-width: 600px) {
-            .card { font-size: 24px; min-width: 50px; }
+            .game-container { padding: 12px; }
             .stat-value { font-size: 20px; }
+            .card { font-size: 24px; min-width: 50px; }
+            .diff-btn { font-size: 11px; padding: 6px 12px; }
+            button { padding: 8px 20px; font-size: 14px; }
         }
     </style>
 </head>
@@ -115,113 +192,414 @@
     <div class="game-container">
         <div class="game-panel">
             <div class="stats">
-                <div class="stat-card"><div class="stat-label">ХОДЫ</div><div class="stat-value" id="moves">0</div></div>
-                <div class="stat-card"><div class="stat-label">ВРЕМЯ</div><div class="stat-value" id="timer">00:00</div></div>
-                <div class="stat-card"><div class="stat-label">РЕКОРД ХОДЫ</div><div class="stat-value" id="bestMoves">—</div></div>
-                <div class="stat-card"><div class="stat-label">РЕКОРД ВРЕМЯ</div><div class="stat-value" id="bestTime">—</div></div>
+                <div class="stat-card">
+                    <div class="stat-label">ХОДЫ</div>
+                    <div class="stat-value" id="moves">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">ВРЕМЯ</div>
+                    <div class="stat-value" id="timer">00:00</div>
+                </div>
+                <div class="stat-card best">
+                    <div class="stat-label">РЕКОРД ХОДЫ</div>
+                    <div class="stat-value" id="bestMoves">—</div>
+                </div>
+                <div class="stat-card best">
+                    <div class="stat-label">РЕКОРД ВРЕМЯ</div>
+                    <div class="stat-value" id="bestTime">—</div>
+                </div>
             </div>
+
             <div class="difficulty-selector">
                 <button class="diff-btn" data-pairs="10">🔟 10 ПАР</button>
                 <button class="diff-btn" data-pairs="15">1️⃣5️⃣ 15 ПАР</button>
                 <button class="diff-btn" data-pairs="25">2️⃣5️⃣ 25 ПАР</button>
             </div>
+
             <div class="board" id="board"></div>
-            <div class="controls"><button id="newGameBtn">🔄 НОВАЯ ИГРА</button></div>
+
+            <div class="controls">
+                <button id="newGameBtn">🔄 НОВАЯ ИГРА</button>
+                <button id="musicBtn" class="music-btn">🎵 ВКЛ</button>
+            </div>
             <div class="status" id="gameStatus">🧠 НАЙДИ ПАРЫ</div>
         </div>
     </div>
 </div>
+
 <script>
-(function(){
-    let currentPairs = 25;
-    let cards = [], flippedCards = [], matchedPairs = 0, moves = 0, gameActive = true, lockBoard = false;
-    let timerSeconds = 0, timerInterval = null;
-    const emojiSet = ["🐱","🐶","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐸","🐒","🐔","🐧","🐦","🐌","🐝","🐞","🐠","🐟","🐙"];
-    const geometrySet = ["🔴","🔵","🟢","🟡","🟣","🟠","🔷","🔺","⚪","⬛","❤️","💙","💚","💛","🧡"];
-    let bestMoves = {10:null,15:null,25:null}, bestTimes = {10:null,15:null,25:null};
-    const boardEl = document.getElementById('board'), movesSpan = document.getElementById('moves'), timerSpan = document.getElementById('timer');
-    const bestMovesSpan = document.getElementById('bestMoves'), bestTimeSpan = document.getElementById('bestTime'), gameStatusSpan = document.getElementById('gameStatus');
-    
-    function loadRecords() {
-        try {
-            const savedMoves = localStorage.getItem('memory_best_moves');
-            const savedTimes = localStorage.getItem('memory_best_times');
-            if(savedMoves) bestMoves = JSON.parse(savedMoves);
-            if(savedTimes) bestTimes = JSON.parse(savedTimes);
-        } catch(e) {}
-        updateRecordsDisplay();
-    }
-    function saveRecords() {
-        localStorage.setItem('memory_best_moves', JSON.stringify(bestMoves));
-        localStorage.setItem('memory_best_times', JSON.stringify(bestTimes));
-    }
-    function updateRecordsDisplay() {
-        bestMovesSpan.innerText = bestMoves[currentPairs] !== null ? bestMoves[currentPairs] : "—";
-        bestTimeSpan.innerText = bestTimes[currentPairs] !== null ? formatTime(bestTimes[currentPairs]) : "—";
-    }
-    function formatTime(sec) { return `${Math.floor(sec/60).toString().padStart(2,'0')}:${(sec%60).toString().padStart(2,'0')}`; }
-    function generateRandomContent() {
-        const useEmoji = Math.random() < 0.5;
-        const sourceSet = useEmoji ? emojiSet : geometrySet;
-        const shuffled = [...sourceSet];
-        for(let i=shuffled.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]; }
-        const selected = shuffled.slice(0, currentPairs);
-        return selected.map(v=>({value:v, type:useEmoji?'emoji':'geo'}));
-    }
-    function shuffleArray(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
-    function initGame(){
-        if(timerInterval) clearInterval(timerInterval);
-        timerSeconds=0; timerSpan.innerText="00:00"; moves=0; matchedPairs=0; gameActive=true; lockBoard=false; flippedCards=[];
-        movesSpan.innerText="0"; gameStatusSpan.innerHTML="🧠 НАЙДИ ПАРЫ"; gameStatusSpan.style.color="#e67e22";
-        const pairs = generateRandomContent();
-        let deck=[];
-        for(let i=0;i<currentPairs;i++){ deck.push({id:i, value:pairs[i].value, matched:false, flipped:false}); deck.push({id:i, value:pairs[i].value, matched:false, flipped:false}); }
-        deck=shuffleArray(deck); cards=deck;
-        renderBoard();
-        timerInterval=setInterval(()=>{ if(gameActive && matchedPairs<currentPairs){ timerSeconds++; timerSpan.innerText=formatTime(timerSeconds); } },1000);
-    }
-    function renderBoard(){
-        let cols = currentPairs===10?5:(currentPairs===15?6:10);
-        boardEl.style.display='grid'; boardEl.style.gridTemplateColumns=`repeat(${cols}, minmax(60px, 85px))`; boardEl.style.gap='8px';
-        boardEl.innerHTML='';
-        for(let i=0;i<cards.length;i++){
-            const card=cards[i]; const div=document.createElement('div');
-            div.className='card'; if(card.matched) div.classList.add('matched'); if(card.flipped && !card.matched) div.classList.add('flipped');
-            div.innerText=(card.flipped||card.matched)?card.value:"?";
-            div.addEventListener('click',(()=>onCardClick(i)));
-            boardEl.appendChild(div);
+    (function(){
+        // ---------- НАСТРОЙКИ ----------
+        let currentPairs = 25;
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let moves = 0;
+        let gameActive = true;
+        let lockBoard = false;
+        let timerSeconds = 0;
+        let timerInterval = null;
+        
+        const emojiSet = ["🐱","🐶","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐸","🐒","🐔","🐧","🐦","🐌","🐝","🐞","🐠","🐟","🐙"];
+        const geometrySet = ["🔴","🔵","🟢","🟡","🟣","🟠","🔷","🔺","⚪","⬛","❤️","💙","💚","💛","🧡","🔶","🔸","🔹","◻️","◼️"];
+        
+        let bestMoves = { 10: null, 15: null, 25: null };
+        let bestTimes = { 10: null, 15: null, 25: null };
+        
+        const boardEl = document.getElementById('board');
+        const movesSpan = document.getElementById('moves');
+        const timerSpan = document.getElementById('timer');
+        const bestMovesSpan = document.getElementById('bestMoves');
+        const bestTimeSpan = document.getElementById('bestTime');
+        const gameStatusSpan = document.getElementById('gameStatus');
+        const musicBtn = document.getElementById('musicBtn');
+        
+        // ---------- ЗВУКИ ----------
+        let audioCtx = null;
+        let flipSound = null;
+        let matchSound = null;
+        let errorSound = null;
+        let winSound = null;
+        let bgMusic = null;
+        let musicEnabled = true;
+        
+        function initAudio() {
+            if (audioCtx) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                createFlipSound();
+                createMatchSound();
+                createErrorSound();
+                createWinSound();
+                createBgMusic();
+            } catch(e) { console.log("Web Audio не поддерживается"); }
         }
-    }
-    function onCardClick(idx){
-        if(!gameActive||lockBoard||cards[idx].matched||cards[idx].flipped) return;
-        cards[idx].flipped=true; flippedCards.push(idx); renderBoard();
-        if(flippedCards.length===2){
-            lockBoard=true; moves++; movesSpan.innerText=moves;
-            const idx1=flippedCards[0], idx2=flippedCards[1], match=(cards[idx1].id===cards[idx2].id);
-            if(match){
-                cards[idx1].matched=true; cards[idx2].matched=true; cards[idx1].flipped=false; cards[idx2].flipped=false;
-                matchedPairs++; flippedCards=[]; lockBoard=false; renderBoard();
-                if(matchedPairs===currentPairs){
-                    gameActive=false; if(timerInterval) clearInterval(timerInterval);
-                    gameStatusSpan.innerHTML="🏆 ПОБЕДА! 🏆"; gameStatusSpan.style.color="#f1c40f";
-                    if(bestMoves[currentPairs]===null || moves<bestMoves[currentPairs]) bestMoves[currentPairs]=moves;
-                    if(bestTimes[currentPairs]===null || timerSeconds<bestTimes[currentPairs]) bestTimes[currentPairs]=timerSeconds;
-                    saveRecords(); updateRecordsDisplay();
-                }
-            } else {
-                setTimeout(()=>{
-                    cards[idx1].flipped=false; cards[idx2].flipped=false; flippedCards=[]; lockBoard=false; renderBoard();
-                },700);
+        
+        function createFlipSound() {
+            if (!audioCtx) return;
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.08, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < buffer.length; i++) {
+                data[i] = Math.sin(440 * 2 * Math.PI * i / audioCtx.sampleRate) * Math.exp(-i / (audioCtx.sampleRate * 0.03));
             }
-            renderBoard();
+            flipSound = buffer;
         }
-    }
-    function setDifficulty(pairs){ currentPairs=pairs; document.querySelectorAll('.diff-btn').forEach(btn=>{ if(parseInt(btn.dataset.pairs)===pairs) btn.classList.add('active'); else btn.classList.remove('active'); }); newGame(); }
-    function newGame(){ if(timerInterval) clearInterval(timerInterval); initGame(); }
-    document.querySelectorAll('.diff-btn').forEach(btn=>btn.addEventListener('click',()=>setDifficulty(parseInt(btn.dataset.pairs))));
-    document.getElementById('newGameBtn').addEventListener('click',()=>newGame());
-    loadRecords(); initGame();
-})();
+        
+        function createMatchSound() {
+            if (!audioCtx) return;
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.2, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < buffer.length; i++) {
+                let t = i / audioCtx.sampleRate;
+                data[i] = Math.sin(660 * 2 * Math.PI * t) * Math.exp(-t * 10);
+            }
+            matchSound = buffer;
+        }
+        
+        function createErrorSound() {
+            if (!audioCtx) return;
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.25, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < buffer.length; i++) {
+                let t = i / audioCtx.sampleRate;
+                data[i] = (Math.random() - 0.5) * 0.5 * Math.exp(-t * 15);
+            }
+            errorSound = buffer;
+        }
+        
+        function createWinSound() {
+            if (!audioCtx) return;
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.8, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < buffer.length; i++) {
+                let t = i / audioCtx.sampleRate;
+                let freq = 440 + t * 440;
+                data[i] = Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 3);
+            }
+            winSound = buffer;
+        }
+        
+        function createBgMusic() {
+            if (!audioCtx) return;
+            const duration = 4.0;
+            const sampleRate = audioCtx.sampleRate;
+            const frameCount = sampleRate * duration;
+            const buffer = audioCtx.createBuffer(1, frameCount, sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            for (let i = 0; i < frameCount; i++) {
+                let t = i / sampleRate;
+                // Спокойная мелодия: арпеджио
+                let note1 = Math.sin(2 * Math.PI * 261.63 * t) * 0.15; // C4
+                let note2 = Math.sin(2 * Math.PI * 329.63 * t * 1.5) * 0.1; // E4
+                let note3 = Math.sin(2 * Math.PI * 392.00 * t * 2) * 0.08; // G4
+                let pad = Math.sin(2 * Math.PI * 130.81 * t) * 0.12; // C3 бас
+                
+                data[i] = (note1 + note2 + note3 + pad) * Math.exp(-t * 0.05);
+            }
+            bgMusic = buffer;
+        }
+        
+        function playSound(buffer) {
+            if (!audioCtx || !buffer) return;
+            const source = audioCtx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioCtx.destination);
+            source.start();
+        }
+        
+        let bgLoopSource = null;
+        function startBgMusic() {
+            if (!audioCtx || !bgMusic || !musicEnabled) return;
+            if (bgLoopSource) {
+                try { bgLoopSource.stop(); } catch(e) {}
+            }
+            bgLoopSource = audioCtx.createBufferSource();
+            bgLoopSource.buffer = bgMusic;
+            bgLoopSource.loop = true;
+            bgLoopSource.connect(audioCtx.destination);
+            bgLoopSource.start();
+        }
+        
+        function stopBgMusic() {
+            if (bgLoopSource) {
+                try { bgLoopSource.stop(); } catch(e) {}
+                bgLoopSource = null;
+            }
+        }
+        
+        function toggleMusic() {
+            musicEnabled = !musicEnabled;
+            if (musicEnabled) {
+                startBgMusic();
+                musicBtn.innerHTML = "🎵 ВЫКЛ";
+                musicBtn.style.background = "#e67e22";
+            } else {
+                stopBgMusic();
+                musicBtn.innerHTML = "🔇 ВКЛ";
+                musicBtn.style.background = "#2c3e50";
+            }
+        }
+        
+        function unlockAudio() {
+            if (audioCtx && audioCtx.state !== 'running') {
+                audioCtx.resume().then(() => {
+                    if (musicEnabled) startBgMusic();
+                });
+            }
+        }
+        
+        // ---------- РЕКОРДЫ ----------
+        function loadRecords() {
+            try {
+                const savedMoves = localStorage.getItem('memory_best_moves');
+                const savedTimes = localStorage.getItem('memory_best_times');
+                if (savedMoves) bestMoves = JSON.parse(savedMoves);
+                if (savedTimes) bestTimes = JSON.parse(savedTimes);
+            } catch(e) {}
+            updateRecordsDisplay();
+        }
+        
+        function saveRecords() {
+            localStorage.setItem('memory_best_moves', JSON.stringify(bestMoves));
+            localStorage.setItem('memory_best_times', JSON.stringify(bestTimes));
+        }
+        
+        function updateRecordsDisplay() {
+            const bestMove = bestMoves[currentPairs];
+            const bestTime = bestTimes[currentPairs];
+            bestMovesSpan.innerText = bestMove !== null ? bestMove : "—";
+            bestTimeSpan.innerText = bestTime !== null ? formatTime(bestTime) : "—";
+        }
+        
+        function formatTime(sec) {
+            const mins = Math.floor(sec / 60);
+            const remainSec = sec % 60;
+            return `${mins.toString().padStart(2, '0')}:${remainSec.toString().padStart(2, '0')}`;
+        }
+        
+        function generateRandomContent() {
+            const useEmoji = Math.random() < 0.5;
+            const sourceSet = useEmoji ? emojiSet : geometrySet;
+            const shuffled = [...sourceSet];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            const selected = shuffled.slice(0, currentPairs);
+            return selected.map(v => ({ value: v, type: useEmoji ? 'emoji' : 'geo' }));
+        }
+        
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+        
+        function initGame() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerSeconds = 0;
+            timerSpan.innerText = "00:00";
+            moves = 0;
+            matchedPairs = 0;
+            gameActive = true;
+            lockBoard = false;
+            flippedCards = [];
+            movesSpan.innerText = "0";
+            gameStatusSpan.innerHTML = "🧠 НАЙДИ ПАРЫ";
+            gameStatusSpan.style.color = "#e67e22";
+            
+            const pairs = generateRandomContent();
+            let deck = [];
+            for (let i = 0; i < currentPairs; i++) {
+                deck.push({ id: i, value: pairs[i].value, matched: false, flipped: false });
+                deck.push({ id: i, value: pairs[i].value, matched: false, flipped: false });
+            }
+            deck = shuffleArray(deck);
+            cards = deck;
+            
+            renderBoard();
+            
+            timerInterval = setInterval(() => {
+                if (gameActive && matchedPairs < currentPairs) {
+                    timerSeconds++;
+                    timerSpan.innerText = formatTime(timerSeconds);
+                }
+            }, 1000);
+        }
+        
+        function renderBoard() {
+            let cols;
+            if (currentPairs === 10) cols = 5;
+            else if (currentPairs === 15) cols = 6;
+            else cols = 10;
+            
+            boardEl.style.display = 'grid';
+            boardEl.style.gridTemplateColumns = `repeat(${cols}, minmax(55px, 85px))`;
+            boardEl.style.gap = '8px';
+            
+            boardEl.innerHTML = '';
+            for (let i = 0; i < cards.length; i++) {
+                const card = cards[i];
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card';
+                if (card.matched) cardDiv.classList.add('matched');
+                if (card.flipped && !card.matched) cardDiv.classList.add('flipped');
+                cardDiv.innerText = (card.flipped || card.matched) ? card.value : "?";
+                cardDiv.addEventListener('click', (function(idx) {
+                    return function() { onCardClick(idx); };
+                })(i));
+                boardEl.appendChild(cardDiv);
+            }
+        }
+        
+        function onCardClick(idx) {
+            if (!gameActive) return;
+            if (lockBoard) return;
+            if (cards[idx].matched) return;
+            if (cards[idx].flipped) return;
+            
+            playSound(flipSound);
+            
+            cards[idx].flipped = true;
+            flippedCards.push(idx);
+            renderBoard();
+            
+            if (flippedCards.length === 2) {
+                lockBoard = true;
+                moves++;
+                movesSpan.innerText = moves;
+                
+                const idx1 = flippedCards[0];
+                const idx2 = flippedCards[1];
+                const match = (cards[idx1].id === cards[idx2].id);
+                
+                if (match) {
+                    playSound(matchSound);
+                    cards[idx1].matched = true;
+                    cards[idx2].matched = true;
+                    cards[idx1].flipped = false;
+                    cards[idx2].flipped = false;
+                    matchedPairs++;
+                    flippedCards = [];
+                    lockBoard = false;
+                    renderBoard();
+                    
+                    if (matchedPairs === currentPairs) {
+                        gameActive = false;
+                        if (timerInterval) clearInterval(timerInterval);
+                        playSound(winSound);
+                        gameStatusSpan.innerHTML = "🏆 ПОБЕДА! 🏆";
+                        gameStatusSpan.style.color = "#f1c40f";
+                        
+                        if (bestMoves[currentPairs] === null || moves < bestMoves[currentPairs]) {
+                            bestMoves[currentPairs] = moves;
+                        }
+                        if (bestTimes[currentPairs] === null || timerSeconds < bestTimes[currentPairs]) {
+                            bestTimes[currentPairs] = timerSeconds;
+                        }
+                        saveRecords();
+                        updateRecordsDisplay();
+                    }
+                } else {
+                    playSound(errorSound);
+                    setTimeout(() => {
+                        cards[idx1].flipped = false;
+                        cards[idx2].flipped = false;
+                        flippedCards = [];
+                        lockBoard = false;
+                        renderBoard();
+                    }, 700);
+                }
+                renderBoard();
+            }
+        }
+        
+        function setDifficulty(pairs) {
+            currentPairs = pairs;
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                if (parseInt(btn.dataset.pairs) === pairs) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            newGame();
+        }
+        
+        function newGame() {
+            if (timerInterval) clearInterval(timerInterval);
+            initGame();
+        }
+        
+        // ---------- СОБЫТИЯ ----------
+        function setupEvents() {
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setDifficulty(parseInt(btn.dataset.pairs));
+                });
+            });
+            document.getElementById('newGameBtn').addEventListener('click', () => newGame());
+            musicBtn.addEventListener('click', toggleMusic);
+            document.body.addEventListener('click', unlockAudio);
+            document.body.addEventListener('touchstart', unlockAudio);
+        }
+        
+        function start() {
+            loadRecords();
+            initAudio();
+            setupEvents();
+            initGame();
+            // Автоматически запускаем музыку при первом взаимодействии
+            musicEnabled = true;
+            musicBtn.innerHTML = "🎵 ВЫКЛ";
+            musicBtn.style.background = "#e67e22";
+        }
+        
+        start();
+    })();
 </script>
 </body>
 </html>
